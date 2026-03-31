@@ -1,6 +1,8 @@
-# The Pitch Visualizer
+# The Pitch Visualizer (Challenge 2)
 
 **From Words to Storyboard — AI-Powered Visual Storytelling**
+
+> **Live Demo:** https://pitch-visualizer-ldbg.onrender.com
 
 A service that ingests a block of narrative text, deconstructs it into key scenes, generates rich image prompts via GPT, creates images via DALL-E 3, and presents the result as a multi-panel visual storyboard.
 
