@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Pitch Visualizer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 {
+            text-align: center;
+            font-size: 2.2rem;
+            margin-bottom: 0.3rem;
+            background: linear-gradient(90deg, #e2b714, #f093fb);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            text-align: center;
+            color: #9e9e9e;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+        label {
+            display: block;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #9e9e9e;
+            margin-bottom: 0.5rem;
+        }
+        textarea {
+            width: 100%;
+            min-height: 160px;
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(0, 0, 0, 0.3);
+            color: #e0e0e0;
+            font-size: 1rem;
+            resize: vertical;
+            font-family: inherit;
+        }
+        textarea:focus { outline: none; border-color: #e2b714; }
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.6rem;
+            margin-top: 0.5rem;
+        }
+        .style-option {
+            position: relative;
+        }
+        .style-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .style-label {
+            display: block;
+            text-align: center;
+            padding: 0.6rem 0.4rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-transform: capitalize;
+            transition: all 0.2s;
+        }
+        .style-option input[type="radio"]:checked + .style-label {
+            border-color: #e2b714;
+            background: rgba(226, 183, 20, 0.15);
+            color: #e2b714;
+        }
+        .style-label:hover {
+            border-color: rgba(226, 183, 20, 0.5);
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 0.9rem;
+            margin-top: 1.5rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(90deg, #e2b714, #f093fb);
+            color: #1a1a2e;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        .error {
+            background: rgba(245, 87, 108, 0.2);
+            border: 1px solid #f5576c;
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .loading-overlay.active { display: flex; }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #e2b714;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text {
+            margin-top: 1rem;
+            font-size: 1.1rem;
+            color: #e2b714;
+        }
+        .loading-sub {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #9e9e9e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>The Pitch Visualizer</h1>
+        <p class="subtitle">From Words to Storyboard — AI-Powered Visual Storytelling</p>
+
+        <div class="card">
+            {% if error %}
+            <div class="error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" action="/generate" id="generateForm">
+                <label for="text">Your Narrative</label>
+                <textarea name="text" id="text" placeholder="Paste your customer success story, sales pitch, or narrative here...&#10;&#10;Example:&#10;A small bakery in downtown Chicago was struggling to compete with large chains. They partnered with our platform to launch a targeted social media campaign. Within three months, foot traffic doubled and online orders tripled. The owner, Maria, was able to hire two additional staff members. Today, her bakery is the highest-rated in the neighborhood.">{{ text or '' }}</textarea>
+
+                <label style="margin-top: 1.2rem;">Visual Style</label>
+                <div class="style-grid">
+                    {% for key, desc in styles.items() %}
+                    <div class="style-option">
+                        <input type="radio" name="style" id="style_{{ key }}" value="{{ key }}"
+                               {% if key == default_style %}checked{% endif %}>
+                        <label class="style-label" for="style_{{ key }}">{{ key.replace('_', ' ') }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <button type="submit">Generate Storyboard</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Generating your storyboard...</div>
+        <div class="loading-sub">Segmenting narrative, engineering prompts, and creating images. This may take a minute.</div>
+    </div>
+
+    <script>
+        document.getElementById('generateForm').addEventListener('submit', function() {
+            document.getElementById('loadingOverlay').classList.add('active');
+        });
+    </script>
+</body>
+</html>
